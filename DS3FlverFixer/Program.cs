@@ -8,24 +8,22 @@ internal static class Program
 {
     public static void Main(string[] args)
     {
-        if (!BND4.Is(args[0])) return;
+        if (!BND4.Is(args[0])) throw new ArgumentException("Only BND4 is supported.");
         BND4 bnd = BND4.Read(args[0]);
         
+        Game game = new(bnd);
+
         foreach (BinderFile flverFile in bnd.Files.Where(x => x.Name.EndsWith(".flver", StringComparison.OrdinalIgnoreCase)))
         {
             FLVER2 flver = FLVER2.Read(flverFile.Bytes);
             flver.BufferLayouts = new List<FLVER2.BufferLayout>();
             flver.GXLists = new List<FLVER2.GXList>();
-            
-            string cwd = AppDomain.CurrentDomain.BaseDirectory;
 
-            FLVER2MaterialInfoBank materialInfoBank = FLVER2MaterialInfoBank.ReadFromXML($"{cwd}Res\\BankDS3.xml");
-            
             List<FLVER2.Material> distinctMaterials = flver.Materials.DistinctBy(x => x.MTD).ToList();
             foreach (var distinctMat in distinctMaterials)
             {
                 FLVER2.GXList gxList = new();
-                gxList.AddRange(materialInfoBank
+                gxList.AddRange(game.MaterialInfoBank
                     .GetDefaultGXItemsForMTD(Path.GetFileName(distinctMat.MTD).ToLower()));
 
                 if (flver.IsNewGxList(gxList))
@@ -41,9 +39,14 @@ internal static class Program
             
             foreach (FLVER2.Mesh? mesh in flver.Meshes)
             {
-                FLVER2MaterialInfoBank.MaterialDef matDef = materialInfoBank.MaterialDefs.Values
-                    .First(x => x.MTD.Equals(
+                FLVER2MaterialInfoBank.MaterialDef? matDef = game.MaterialInfoBank.MaterialDefs.Values
+                    .FirstOrDefault(x => x.MTD.Equals(
                         $"{Path.GetFileName(flver.Materials[mesh.MaterialIndex].MTD).ToLower()}"));
+
+                if (matDef == null)
+                {
+                    throw new KeyNotFoundException(Path.GetFileName(flver.Materials[mesh.MaterialIndex].MTD) + " could not be found in the material info bank.");
+                }
 
                 List<FLVER2.BufferLayout> bufferLayouts = matDef.AcceptableVertexBufferDeclarations[0].Buffers;
                 
@@ -55,6 +58,6 @@ internal static class Program
             flverFile.Bytes = flver.Write();
         }
             
-        bnd.Write(args[0], DCX.Type.DCX_DFLT_10000_44_9);
+        bnd.Write(args[0], game.Compression);
     }
 }
