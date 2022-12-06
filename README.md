@@ -1,7 +1,7 @@
 # DS3FlverFixer
 A Tool built for Dark Souls 3 which will fix GX Lists and Buffer Layouts to make sure they match with the materials used by the flver meshes.
 ## Usage
-Drag any Dark Souls 3 dcx onto the executable that contains a flver or multiple flvers.
+Drag any Dark Souls 3 dcx that contains a flver (or multiple flvers) onto the executable.
 
 It will not create a new dcx, the original dcx will be replaced.
 ## Special Thanks
